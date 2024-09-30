@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New User</title>
+  <link rel="stylesheet" href="./styles/main.css">
+  <link rel="stylesheet" href="./styles/new.css">
+</head>
+
+<body>
+  <h1>Remove a Disease</h1>
+  <form action="/remove_disease" method="post">
+    <p>What's the name?</p>
+    <input type="text" name="name" autofocus placeholder="<%= locals.error ? error :  'Name of the Country'%>">
+    <!-- <div class="spacer"></div> -->
+    <button type="submit" class="btn">Remove</button>
+  </form>
+  <button type="submit" class="btn" onclick="window.location.href='/'">Home</button>
+</body>
+
+</html>
