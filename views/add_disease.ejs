@@ -13,7 +13,7 @@
   <h1>Add a Disease</h1>
   <form action="/add_disease" method="post">
     <p>What's the name?</p>
-    <input type="text" name="name">
+    <input type="text" name="name" autofocus placeholder="<%= locals.error ? error :  'Name of the Disease'%>">
 
     <p>Pick a color:</p>
     <input type="radio" name="color" id="red" value="red" />

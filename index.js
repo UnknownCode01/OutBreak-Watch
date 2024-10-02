@@ -164,18 +164,32 @@ app.post("/user", async (req, res) => {
 });
 
 app.post("/add_disease", async (req, res) => {
-  const name = req.body.name;
-  const color = req.body.color;
-
-  const result = await db.query(
-    "INSERT INTO users (name, color) VALUES($1, $2) RETURNING *;",
-    [name, color]
-  );
-
-  const id = result.rows[0].id;
-  currentUserId = id;
-
-  res.redirect("/");
+  try {
+    const name = req.body.name;
+    const color = req.body.color;
+    const search = await db.query(
+      "SELECT COUNT(*) FROM USERS WHERE name = $1;",
+      [name]
+    );
+    const count = parseInt(search.rows[0].count, 10);
+    if (count > 0) {
+      throw new Error();
+    }
+    else{
+      const result = await db.query(
+        "INSERT INTO users (name, color) VALUES($1, $2) RETURNING *;",
+        [name, color]
+      );
+      const id = result.rows[0].id;
+      currentUserId = id;
+      res.redirect("/");
+    }
+  }
+  catch(error){
+    res.render("add_disease.ejs", {
+      error:"Disease already exists",
+    });
+  }
 });
 
 app.post("/remove_disease", async (req, res) => {

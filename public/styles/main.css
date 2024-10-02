@@ -14,9 +14,12 @@ body {
   background: #21252b;
   font-family: "Roboto", sans-serif;
 }
+.copyright {
+  color: white;
+  text-align: center;
+}
 .add, .remove{
   width: 100%;
-  
 }
 table{
   width: 100%;
