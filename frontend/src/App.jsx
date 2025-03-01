@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import "./App.css";
 
 function App() {
@@ -9,10 +9,9 @@ function App() {
   const [color, setColor] = useState("#ffffff");
   const [newCountry, setNewCountry] = useState("");
   const [updated, setUpdated] = useState(0);
+  const placeholder = useRef("");
 
   useEffect(() => {
-    console.log("updated");
-
     fetch("http://localhost:3000/")
       .then((res) => res.json())
       .then((data) => {
@@ -44,35 +43,51 @@ function App() {
     };
   }, [countries, color]);
 
-  const handleAddCountry = async () => {
+  useEffect(() => {
+    // Restore the last response after refresh
+    const cachedResponse = sessionStorage.getItem("lastPlaceholder");
+    if (cachedResponse) {
+      placeholder.current = cachedResponse;
+    }
+  }, []);
+
+  const handleAddCountry = async (e) => {
+    e.preventDefault();
     try {
       const response = await fetch("http://localhost:3000/add_country", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ country: newCountry }),
       });
-      if (response.ok) window.location.reload();
+      const data = await response.text();
+      sessionStorage.setItem("lastPlaceholder", data);
+      setTimeout(() => {
+        window.location.reload();
+      }, 50);
     } catch (err) {
       setError("Error adding country");
     }
   };
 
-  const handleRemoveCountry = async () => {
+  const handleRemoveCountry = async (e) => {
+    e.preventDefault();
     try {
       const response = await fetch("http://localhost:3000/remove_country", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ country: newCountry }),
       });
-      if (response.ok) window.location.reload();
+      const data = await response.text();
+      sessionStorage.setItem("lastPlaceholder", data);
+      setTimeout(() => {
+        window.location.reload();
+      }, 50);
     } catch (err) {
       setError("Error removing country");
     }
   };
 
   const handleUserChange = async (userId) => {
-    console.log(userId);
-
     const response = await fetch("http://localhost:3000/user", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -83,6 +98,7 @@ function App() {
       setUpdated((prev) => (prev === 0 ? 1 : 0));
     }
   };
+
   return (
     <div className="p-2">
       {error && <div className="text-red-500">{error}</div>}
@@ -147,9 +163,8 @@ function App() {
                 <input
                   type="text"
                   name="country"
-                  value={newCountry}
                   onChange={(e) => setNewCountry(e.target.value)}
-                  placeholder={"Enter country name to add"}
+                  placeholder={placeholder.current || "Enter country to add"}
                   autoFocus
                   className="flex-grow p-2 border rounded bg-white"
                 />
@@ -170,9 +185,8 @@ function App() {
                 <input
                   type="text"
                   name="country"
-                  onChange={(e) => setRemoveCountry(e.target.value)}
-                  placeholder={"Enter country name to remove"}
-                  autoFocus
+                  onChange={(e) => setNewCountry(e.target.value)}
+                  placeholder={placeholder.current || "Enter country to remove"}
                   className="flex-grow p-2 border rounded bg-white"
                 />
                 <button

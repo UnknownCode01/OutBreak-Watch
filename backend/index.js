@@ -50,18 +50,9 @@ async function checkVisisted() {
 }
 
 app.get("/", async (req, res) => {
-  console.log(currentUserId);
-
   const countries = await checkVisisted();
   const currentUser = await getCurrentUser();
   console.log(currentUser);
-  // backend
-  // res.render("index.ejs", {
-  //   countries: countries,
-  //   total: countries.length,
-  //   users: users,
-  //   color: currentUser.color,
-  // });
   res.json({
     countries: countries,
     users: users,
@@ -69,10 +60,10 @@ app.get("/", async (req, res) => {
     color: currentUser.color || "#ffffff",
   });
 });
+
 app.post("/add_country", async (req, res) => {
   const input = req.body["country"];
   const currentUser = await getCurrentUser();
-
   try {
     const result = await db.query(
       "SELECT country_code FROM countries WHERE LOWER(country_name) LIKE $1;",
@@ -93,35 +84,20 @@ app.post("/add_country", async (req, res) => {
         "INSERT INTO visited_countries (country_code, user_id) VALUES ($1, $2)",
         [countryCode, currentUserId]
       );
-      res.redirect("/");
+      res.send("Country added successfully");
     } catch (err) {
       console.log(err);
-      const countries = await checkVisisted();
-      res.render("index.ejs", {
-        countries: countries,
-        total: countries.length,
-        users: users,
-        color: currentUser.color,
-        error: "Country has already been added",
-      });
+      res.send("Country has already been added");
     }
   } catch (err) {
     console.log(err);
-    const countries = await checkVisisted();
-    res.render("index.ejs", {
-      countries: countries,
-      total: countries.length,
-      users: users,
-      color: currentUser.color,
-      error: "Country doesn't exists",
-    });
+    res.send("Country doesn't exists");
   }
 });
 
 app.post("/remove_country", async (req, res) => {
   const input = req.body["country"];
   const currentUser = await getCurrentUser();
-
   try {
     const result = await db.query(
       "SELECT country_code FROM countries WHERE LOWER(country_name) LIKE $1;",
@@ -142,28 +118,14 @@ app.post("/remove_country", async (req, res) => {
         "DELETE FROM visited_countries WHERE country_code = $1 and user_id = $2 ;",
         [countryCode, currentUserId]
       );
-      res.redirect("/");
+      res.send("Country removed successfully");
     } catch (err) {
       console.log(err);
-      const countries = await checkVisisted();
-      res.render("index.ejs", {
-        countries: countries,
-        total: countries.length,
-        users: users,
-        color: currentUser.color,
-        error: "Country is not Selected",
-      });
+      res.send("Country is not Selected");
     }
   } catch (err) {
     console.log(err);
-    const countries = await checkVisisted();
-    res.render("index.ejs", {
-      countries: countries,
-      total: countries.length,
-      users: users,
-      color: currentUser.color,
-      error: "Country doesn't exists",
-    });
+    res.send("Country doesn't exists");
   }
 });
 
