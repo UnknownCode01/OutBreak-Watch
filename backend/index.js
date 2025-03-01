@@ -1,8 +1,10 @@
 import express from "express";
 import bodyParser from "body-parser";
 import pg from "pg";
+import cors from "cors";
 
 const app = express();
+app.use(cors({ origin: "http://localhost:5173" }));
 const port = 3000;
 
 const db = new pg.Client({
@@ -15,11 +17,14 @@ const db = new pg.Client({
 db.connect();
 
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 app.use(express.static("public"));
 
 async function initializeCurrentUser() {
-  const result = await db.query("SELECT id FROM users WHERE name = $1;", ['Countries']);
-  return result.rows[0].id; 
+  const result = await db.query("SELECT id FROM users WHERE name = $1;", [
+    "Countries",
+  ]);
+  return result.rows[0].id;
 }
 
 let currentUserId = await initializeCurrentUser();
@@ -45,13 +50,23 @@ async function checkVisisted() {
 }
 
 app.get("/", async (req, res) => {
+  console.log(currentUserId);
+
   const countries = await checkVisisted();
   const currentUser = await getCurrentUser();
-  res.render("index.ejs", {
+  console.log(currentUser);
+  // backend
+  // res.render("index.ejs", {
+  //   countries: countries,
+  //   total: countries.length,
+  //   users: users,
+  //   color: currentUser.color,
+  // });
+  res.json({
     countries: countries,
-    total: countries.length,
     users: users,
-    color: currentUser.color,
+    total: countries.length,
+    color: currentUser.color || "#ffffff",
   });
 });
 app.post("/add_country", async (req, res) => {
@@ -83,22 +98,22 @@ app.post("/add_country", async (req, res) => {
       console.log(err);
       const countries = await checkVisisted();
       res.render("index.ejs", {
-      countries: countries,
-      total: countries.length,
-      users: users,
-      color: currentUser.color,
-      error:"Country has already been added",
-    });
+        countries: countries,
+        total: countries.length,
+        users: users,
+        color: currentUser.color,
+        error: "Country has already been added",
+      });
     }
   } catch (err) {
     console.log(err);
-      const countries = await checkVisisted();
-      res.render("index.ejs", {
+    const countries = await checkVisisted();
+    res.render("index.ejs", {
       countries: countries,
       total: countries.length,
       users: users,
       color: currentUser.color,
-      error:"Country doesn't exists",
+      error: "Country doesn't exists",
     });
   }
 });
@@ -132,22 +147,22 @@ app.post("/remove_country", async (req, res) => {
       console.log(err);
       const countries = await checkVisisted();
       res.render("index.ejs", {
-      countries: countries,
-      total: countries.length,
-      users: users,
-      color: currentUser.color,
-      error:"Country is not Selected",
-    });
+        countries: countries,
+        total: countries.length,
+        users: users,
+        color: currentUser.color,
+        error: "Country is not Selected",
+      });
     }
   } catch (err) {
     console.log(err);
     const countries = await checkVisisted();
-      res.render("index.ejs", {
+    res.render("index.ejs", {
       countries: countries,
       total: countries.length,
       users: users,
       color: currentUser.color,
-      error:"Country doesn't exists",
+      error: "Country doesn't exists",
     });
   }
 });
@@ -155,11 +170,14 @@ app.post("/remove_country", async (req, res) => {
 app.post("/user", async (req, res) => {
   if (req.body.edit === "add_disease") {
     res.render("add_disease.ejs");
-  } else if(req.body.edit === "remove_disease"){
+  } else if (req.body.edit === "remove_disease") {
     res.render("remove_disease.ejs");
   } else {
     currentUserId = req.body.user;
-    res.redirect("/");
+    console.log("done", req.body.user);
+    // backend
+    // res.redirect("/");
+    res.json({ success: true });
   }
 });
 
@@ -174,8 +192,7 @@ app.post("/add_disease", async (req, res) => {
     const count = parseInt(search.rows[0].count, 10);
     if (count > 0) {
       throw new Error();
-    }
-    else{
+    } else {
       const result = await db.query(
         "INSERT INTO users (name, color) VALUES($1, $2) RETURNING *;",
         [name, color]
@@ -184,10 +201,9 @@ app.post("/add_disease", async (req, res) => {
       currentUserId = id;
       res.redirect("/");
     }
-  }
-  catch(error){
+  } catch (error) {
     res.render("add_disease.ejs", {
-      error:"Disease already exists",
+      error: "Disease already exists",
     });
   }
 });
@@ -195,30 +211,28 @@ app.post("/add_disease", async (req, res) => {
 app.post("/remove_disease", async (req, res) => {
   try {
     const name = req.body.name;
-    if(name==="Countries"){
+    if (name === "Countries") {
       res.render("remove_disease.ejs", {
-        error:"Can't delete Countries",
+        error: "Can't delete Countries",
       });
-    }else{
-      const result = await db.query(
-        "SELECT * FROM USERS WHERE name = $1;",
-        [name]
-      );
+    } else {
+      const result = await db.query("SELECT * FROM USERS WHERE name = $1;", [
+        name,
+      ]);
       if (result.rows.length === 0) {
         throw new Error();
       }
       const id = result.rows[0].id;
-  
+
       await db.query("DELETE FROM visited_countries WHERE id = $1;", [id]);
       await db.query("DELETE FROM users WHERE name = $1;", [name]);
-      
+
       currentUserId = default_id;
       res.redirect("/");
     }
-    
   } catch (error) {
     res.render("remove_disease.ejs", {
-      error:"Disease doesn't exist",
+      error: "Disease doesn't exist",
     });
   }
 });

@@ -1,0 +1,13 @@
+body {
+  background: #21252b;
+  font-family: "Roboto", sans-serif;
+}
+
+.ag-canvas_svg path {
+  fill: #383d46;
+  fill-opacity: 1;
+  stroke: #21252b;
+  stroke-opacity: 1;
+  stroke-width: 0.5;
+  transition: 0.5s;
+}
