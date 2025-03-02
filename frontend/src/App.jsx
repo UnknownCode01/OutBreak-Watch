@@ -7,9 +7,10 @@ function App() {
   const [total, setTotal] = useState(countries.length);
   const [error, setError] = useState(null);
   const [color, setColor] = useState("#ffffff");
-  const [newCountry, setNewCountry] = useState("");
+  const [addCountry, setAddCountry] = useState("");
+  const [removeCountry, setRemoveCountry] = useState("");
   const [updated, setUpdated] = useState(0);
-  const placeholder = useRef("");
+  const [placeholder, setPlaceholder] = useState("");
 
   useEffect(() => {
     fetch("http://localhost:3000/")
@@ -21,6 +22,10 @@ function App() {
         setColor(data.color);
       })
       .catch((err) => console.error("Error fetching data:", err));
+    const cachedResponse = sessionStorage.getItem("lastPlaceholder");
+    if (cachedResponse) {
+      setPlaceholder(cachedResponse);
+    }
   }, [updated]);
 
   useEffect(() => {
@@ -40,8 +45,6 @@ function App() {
     return () => {
       // Cleanup: Reset color when moving to another user
       elements.forEach((element) => (element.style.fill = "#383d46"));
-      // Reset Placeholder
-      placeholder.current = "";
     };
   }, [countries, color]);
 
@@ -49,7 +52,7 @@ function App() {
     // Restore the last response after refresh
     const cachedResponse = sessionStorage.getItem("lastPlaceholder");
     if (cachedResponse) {
-      placeholder.current = cachedResponse;
+      setPlaceholder(cachedResponse);
     }
   }, []);
 
@@ -59,13 +62,15 @@ function App() {
       const response = await fetch("http://localhost:3000/add_country", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ country: newCountry }),
+        body: new URLSearchParams({ country: addCountry }),
       });
       const data = await response.text();
+      setPlaceholder(data);
       sessionStorage.setItem("lastPlaceholder", data);
       setTimeout(() => {
-        window.location.reload();
+        setUpdated((prev) => (prev === 0 ? 1 : 0));
       }, 50);
+      setAddCountry("");
     } catch (err) {
       setError("Error adding country");
     }
@@ -77,13 +82,15 @@ function App() {
       const response = await fetch("http://localhost:3000/remove_country", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ country: newCountry }),
+        body: new URLSearchParams({ country: removeCountry }),
       });
       const data = await response.text();
+      setPlaceholder(data);
       sessionStorage.setItem("lastPlaceholder", data);
       setTimeout(() => {
-        window.location.reload();
+        setUpdated((prev) => (prev === 0 ? 1 : 0));
       }, 50);
+      setRemoveCountry("");
     } catch (err) {
       setError("Error removing country");
     }
@@ -97,6 +104,8 @@ function App() {
     });
 
     if (response.ok) {
+      sessionStorage.setItem("lastPlaceholder", "");
+      setPlaceholder("");
       setUpdated((prev) => (prev === 0 ? 1 : 0));
     }
   };
@@ -165,8 +174,9 @@ function App() {
                 <input
                   type="text"
                   name="country"
-                  onChange={(e) => setNewCountry(e.target.value)}
-                  placeholder={placeholder.current || "Enter country to add"}
+                  value={addCountry}
+                  onChange={(e) => setAddCountry(e.target.value)}
+                  placeholder={placeholder || "Enter country to add"}
                   autoFocus
                   className="flex-grow p-2 border rounded bg-white"
                 />
@@ -187,8 +197,9 @@ function App() {
                 <input
                   type="text"
                   name="country"
-                  onChange={(e) => setNewCountry(e.target.value)}
-                  placeholder={placeholder.current || "Enter country to remove"}
+                  value={removeCountry}
+                  onChange={(e) => setRemoveCountry(e.target.value)}
+                  placeholder={placeholder || "Enter country to remove"}
                   className="flex-grow p-2 border rounded bg-white"
                 />
                 <button
