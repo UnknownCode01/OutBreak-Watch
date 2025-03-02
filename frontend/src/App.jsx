@@ -40,6 +40,8 @@ function App() {
     return () => {
       // Cleanup: Reset color when moving to another user
       elements.forEach((element) => (element.style.fill = "#383d46"));
+      // Reset Placeholder
+      placeholder.current = "";
     };
   }, [countries, color]);
 
