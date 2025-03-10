@@ -1,49 +1,111 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom"; // Ensure routing support
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 
-const Index = ({ users, initialCountries, color }) => {
-  const [countries, setCountries] = useState(initialCountries);
-  const [Users, setUsers] = useState(users);
-  const [bgColor, setBgColor] = useState(color);
-  const [newCountry, setNewCountry] = useState("");
+function Index() {
+  const [users, setUsers] = useState([]);
+  const [countries, setCountries] = useState([]);
+  const [total, setTotal] = useState(countries.length);
+  const [error, setError] = useState(null);
+  const [color, setColor] = useState("#ffffff");
+  const [addCountry, setAddCountry] = useState("");
   const [removeCountry, setRemoveCountry] = useState("");
-  const navigate = useNavigate(); // For handling redirects
   const [updated, setUpdated] = useState(0);
-  useEffect(() => {
-    setCountries(initialCountries);
-  }, [initialCountries]);
+  const [placeholder, setPlaceholder] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetch("http://localhost:3000/")
       .then((res) => res.json())
       .then((data) => {
-        setCountries(data.countries);
         setUsers(data.users);
-        // setCurrentUserId(data.currentUserId);
-        setBgColor(data.color || "#ffffff");
+        setCountries(data.countries);
+        setTotal(data.total);
+        setColor(data.color);
       })
       .catch((err) => console.error("Error fetching data:", err));
-      setUsers()
+    const cachedResponse = sessionStorage.getItem("lastPlaceholder");
+    if (cachedResponse) {
+      setPlaceholder(cachedResponse);
+    }
   }, [updated]);
+
+  useEffect(() => {
+    const countryCodes = Array.isArray(countries)
+      ? countries
+      : countries.split(",").map((code) => code.trim());
+
+    // Store elements to revert color later
+    const elements = countryCodes
+      .map((code) => document.getElementById(code))
+      .filter(Boolean);
+
+    // Apply new color
+    elements.forEach((element) => {
+      element.style.fill = color;
+    });
+    return () => {
+      // Cleanup: Reset color when moving to another user
+      elements.forEach((element) => (element.style.fill = "#383d46"));
+    };
+  }, [countries, color]);
+
+  useEffect(() => {
+    // Restore the last response after refresh
+    const cachedResponse = sessionStorage.getItem("lastPlaceholder");
+    if (cachedResponse) {
+      setPlaceholder(cachedResponse);
+    }
+  }, []);
 
   const handleAddCountry = async (e) => {
     e.preventDefault();
-    await fetch("http://localhost:3000/add_country", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ country: newCountry }),
-    });
+    try {
+      const response = await fetch("http://localhost:3000/add_country", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ country: addCountry }),
+      });
+      const data = await response.text();
+      setPlaceholder(data);
+      sessionStorage.setItem("lastPlaceholder", data);
+      setTimeout(() => {
+        setUpdated((prev) => (prev === 0 ? 1 : 0));
+      }, 50);
+      setAddCountry("");
+    } catch (err) {
+      setError("Error adding country");
+    }
   };
 
   const handleRemoveCountry = async (e) => {
     e.preventDefault();
-    await fetch("http://localhost:3000/remove_country", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ country: removeCountry }),
-    });
+    try {
+      const response = await fetch("http://localhost:3000/remove_country", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ country: removeCountry }),
+      });
+      const data = await response.text();
+      setPlaceholder(data);
+      sessionStorage.setItem("lastPlaceholder", data);
+      setTimeout(() => {
+        setUpdated((prev) => (prev === 0 ? 1 : 0));
+      }, 50);
+      setRemoveCountry("");
+    } catch (err) {
+      setError("Error removing country");
+    }
   };
 
+  const handleAddDisease = async(e) => {
+    e.preventDefault();
+    navigate("/add_disease");
+  }
+
+  const handleRemoveDisease = async(e) => {
+    e.preventDefault();
+    navigate("/remove_disease");
+  }
 
   const handleUserChange = async (userId) => {
     const response = await fetch("http://localhost:3000/user", {
@@ -53,21 +115,18 @@ const Index = ({ users, initialCountries, color }) => {
     });
 
     if (response.ok) {
-       // Redirect to "/"
-       setUpdated((prev) => (prev === 0 ? 1 : 0))
-     }
-    //  else if (response.ok) {
-    //   const data = await response.json();
-    //   onUserChange(data); // Update user data
-    // }
-    
+      sessionStorage.setItem("lastPlaceholder", "");
+      setPlaceholder("");
+      setUpdated((prev) => (prev === 0 ? 1 : 0));
+    }
   };
 
   return (
     <div className="p-2">
+      {error && <div className="text-red-500">{error}</div>}
       <form>
         <div className="flex gap-1">
-          {Users.map((user) => (
+          {users.map((user) => (
             <button
               key={user.id}
               type="button"
@@ -85,7 +144,7 @@ const Index = ({ users, initialCountries, color }) => {
             {/* Add Disease Button */}
             <button
               type="button"
-              onClick={() => navigate("/add_disease")}
+              onClick={handleAddDisease}
               name="edit"
               value="add_disease"
               id="add_disease"
@@ -100,6 +159,7 @@ const Index = ({ users, initialCountries, color }) => {
             {/* Remove Disease Button */}
             <button
               type="button"
+              onClick={handleRemoveDisease}
               name="edit"
               value="remove_disease"
               id="remove_disease"
@@ -125,9 +185,9 @@ const Index = ({ users, initialCountries, color }) => {
                 <input
                   type="text"
                   name="country"
-                  value={newCountry}
-                  onChange={(e) => setNewCountry(e.target.value)}
-                  placeholder={"Enter country name to add"}
+                  value={addCountry}
+                  onChange={(e) => setAddCountry(e.target.value)}
+                  placeholder={placeholder || "Enter country to add"}
                   autoFocus
                   className="flex-grow p-2 border rounded bg-white"
                 />
@@ -150,8 +210,7 @@ const Index = ({ users, initialCountries, color }) => {
                   name="country"
                   value={removeCountry}
                   onChange={(e) => setRemoveCountry(e.target.value)}
-                  placeholder={"Enter country name to remove"}
-                  autoFocus
+                  placeholder={placeholder || "Enter country to remove"}
                   className="flex-grow p-2 border rounded bg-white"
                 />
                 <button
@@ -1060,10 +1119,10 @@ const Index = ({ users, initialCountries, color }) => {
       </section>
 
       <h2 className="absolute bottom-10 left-2 p-2 text-white text-2xl">
-        Total Countries: {countries.length}
+        Total Countries: {total}
       </h2>
     </div>
   );
-};
+}
 
 export default Index;

@@ -161,12 +161,10 @@ app.post("/add_disease", async (req, res) => {
       );
       const id = result.rows[0].id;
       currentUserId = id;
-      res.redirect("/");
+      res.send("Illness added successfully");
     }
   } catch (error) {
-    res.render("add_disease.ejs", {
-      error: "Disease already exists",
-    });
+    res.send("Illness already Exists");
   }
 });
 
@@ -174,9 +172,7 @@ app.post("/remove_disease", async (req, res) => {
   try {
     const name = req.body.name;
     if (name === "Countries") {
-      res.render("remove_disease.ejs", {
-        error: "Can't delete Countries",
-      });
+      res.send("Countries can't be Deleted");
     } else {
       const result = await db.query("SELECT * FROM USERS WHERE name = $1;", [
         name,
@@ -190,12 +186,10 @@ app.post("/remove_disease", async (req, res) => {
       await db.query("DELETE FROM users WHERE name = $1;", [name]);
 
       currentUserId = default_id;
-      res.redirect("/");
+      res.send("Illness removed successfully");
     }
   } catch (error) {
-    res.render("remove_disease.ejs", {
-      error: "Disease doesn't exist",
-    });
+    res.send("Illness doesn't Exists");
   }
 });
 
